@@ -10,9 +10,11 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
-import android.view.animation.OvershootInterpolator;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 
 import butterknife.BindView;
 import butterknife.OnClick;
@@ -27,7 +29,7 @@ import io.github.froger.instamaterial.ui.view.FeedContextMenuManager;
 public class MainActivity extends BaseDrawerActivity implements FeedAdapter.OnFeedItemClickListener,
         FeedContextMenu.OnFeedContextMenuItemClickListener {
     public static final String ACTION_SHOW_LOADING_ITEM = "action_show_loading_item";
-
+    public static final String TAG = "MainActivity";
     private static final int ANIM_DURATION_TOOLBAR = 300;
     private static final int ANIM_DURATION_FAB = 400;
 
@@ -79,13 +81,15 @@ public class MainActivity extends BaseDrawerActivity implements FeedAdapter.OnFe
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        Log.d("MainActivity", "onNewIntent: ");
         if (ACTION_SHOW_LOADING_ITEM.equals(intent.getAction())) {
             showFeedLoadingItemDelayed();
         }
     }
 
     private void showFeedLoadingItemDelayed() {
-        new Handler().postDelayed(new Runnable() {
+        new Handler()
+                .postDelayed(new Runnable() {
             @Override
             public void run() {
                 rvFeed.smoothScrollToPosition(0);
@@ -105,41 +109,36 @@ public class MainActivity extends BaseDrawerActivity implements FeedAdapter.OnFe
     }
 
     private void startIntroAnimation() {
-        fabCreate.setTranslationY(2 * getResources().getDimensionPixelOffset(R.dimen.btn_fab_size));
+        if (getToolbar() != null) {
+            Animation animationAv = AnimationUtils.loadAnimation(this, R.anim.toolbar_translate);
+            getToolbar().startAnimation(animationAv);
+        }
 
-        int actionbarSize = Utils.dpToPx(56);
-        getToolbar().setTranslationY(-actionbarSize);
-        getIvLogo().setTranslationY(-actionbarSize);
-        getInboxMenuItem().getActionView().setTranslationY(-actionbarSize);
+        if (getIvLogo() != null) {
+            Animation animation = AnimationUtils.loadAnimation(this, R.anim.logo_translate);
+            getIvLogo().startAnimation(animation);
+        }
 
-        getToolbar().animate()
-                .translationY(0)
-                .setDuration(ANIM_DURATION_TOOLBAR)
-                .setStartDelay(300);
-        getIvLogo().animate()
-                .translationY(0)
-                .setDuration(ANIM_DURATION_TOOLBAR)
-                .setStartDelay(400);
-        getInboxMenuItem().getActionView().animate()
-                .translationY(0)
-                .setDuration(ANIM_DURATION_TOOLBAR)
-                .setStartDelay(500)
-                .setListener(new AnimatorListenerAdapter() {
+        Animation animationAv = AnimationUtils.loadAnimation(this, R.anim.toolbar_action_view);
+        getInboxMenuItem().getActionView().startAnimation(animationAv);
+        animationAv.setAnimationListener(new Animation.AnimationListener() {
                     @Override
-                    public void onAnimationEnd(Animator animation) {
+                    public void onAnimationStart(Animation animation) { }
+
+                    @Override
+                    public void onAnimationEnd(Animation animation) {
                         startContentAnimation();
                     }
-                })
-                .start();
+
+                    @Override
+                    public void onAnimationRepeat(Animation animation) { }
+                });
     }
 
     private void startContentAnimation() {
-        fabCreate.animate()
-                .translationY(0)
-                .setInterpolator(new OvershootInterpolator(1.f))
-                .setStartDelay(300)
-                .setDuration(ANIM_DURATION_FAB)
-                .start();
+        fabCreate.show();
+        Animation animation = AnimationUtils.loadAnimation(this, R.anim.fab_translate);
+        fabCreate.startAnimation(animation);
         feedAdapter.updateItems(true);
     }
 
@@ -155,7 +154,9 @@ public class MainActivity extends BaseDrawerActivity implements FeedAdapter.OnFe
 
     @Override
     public void onMoreClick(View v, int itemPosition) {
-        FeedContextMenuManager.getInstance().toggleContextMenuFromView(v, itemPosition, this);
+        FeedContextMenuManager
+                .getInstance()
+                .toggleContextMenuFromView(v, itemPosition, this);
     }
 
     @Override
